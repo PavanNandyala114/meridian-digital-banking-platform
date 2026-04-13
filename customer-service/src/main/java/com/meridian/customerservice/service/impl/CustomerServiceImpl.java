@@ -42,8 +42,8 @@ public class CustomerServiceImpl implements CustomerService {
                 .dateOfBirth(request.getDateOfBirth())
                 .address(request.getAddress())
                 .customerType(CustomerUtil.determineCustomerType(request.getDateOfBirth()))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+//                .createdAt(LocalDateTime.now())
+//                .updatedAt(LocalDateTime.now())
                 .build();
 
         Customer savedCustomer = customerRepository.save(customer);
@@ -95,7 +95,7 @@ public class CustomerServiceImpl implements CustomerService {
             customer.setDateOfBirth(request.getDateOfBirth());
             customer.setAddress(request.getAddress());
             customer.setCustomerType(CustomerUtil.determineCustomerType(request.getDateOfBirth()));
-            customer.setUpdatedAt(LocalDateTime.now());
+//            customer.setUpdatedAt(LocalDateTime.now());
 
         Customer updatedCustomer = customerRepository.save(customer);
         log.info("Customer updated successfully with ID: " + updatedCustomer.getCustomerId() + " and code: " + updatedCustomer.getCustomerCode() + "");
@@ -147,8 +147,8 @@ public class CustomerServiceImpl implements CustomerService {
                 .age(CustomerUtil.calculateAge(customer.getDateOfBirth()))
                 .address(customer.getAddress())
                 .customerType(customer.getCustomerType())
-                .createdAt(customer.getCreatedAt())
-                .updatedAt(customer.getUpdatedAt())
+//                .createdAt(customer.getCreatedAt())
+//                .updatedAt(customer.getUpdatedAt())
                 .build();
     }
 
