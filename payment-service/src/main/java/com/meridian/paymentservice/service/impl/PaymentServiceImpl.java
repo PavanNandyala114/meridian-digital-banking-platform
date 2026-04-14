@@ -1,16 +1,19 @@
 package com.meridian.paymentservice.service.impl;
 
+import com.meridian.paymentservice.client.AccountServiceClient;
+import com.meridian.paymentservice.client.CustomerServiceClient;
 import com.meridian.paymentservice.entity.PaymentTransaction;
 import com.meridian.paymentservice.exception.DuplicateResourceException;
 import com.meridian.paymentservice.exception.ResourceNotFoundException;
 import com.meridian.paymentservice.payload.PaymentRequest;
 import com.meridian.paymentservice.payload.PaymentResponse;
+import com.meridian.paymentservice.payload.external.ExternalAccountResponse;
+import com.meridian.paymentservice.payload.external.ExternalCustomerResponse;
 import com.meridian.paymentservice.repository.PaymentRepository;
 import com.meridian.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +24,8 @@ import java.util.List;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final CustomerServiceClient customerServiceClient;
+    private final AccountServiceClient accountServiceClient;
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
@@ -31,6 +36,9 @@ public class PaymentServiceImpl implements PaymentService {
             throw new DuplicateResourceException("Payment with this transaction reference already exists");
 
         }
+
+        validatePaymentRequest(request);
+
         PaymentTransaction payment = PaymentTransaction.builder()
                 .transactionReference(request.getTransactionReference())
                 .sourceAccountId(request.getSourceAccountId())
@@ -92,6 +100,8 @@ public class PaymentServiceImpl implements PaymentService {
             throw new DuplicateResourceException("Payment with this transaction reference already exists");
         }
 
+        validatePaymentRequest(request);
+
         payment.setTransactionReference(request.getTransactionReference());
         payment.setSourceAccountId(request.getSourceAccountId());
         payment.setDestinationAccountId(request.getDestinationAccountId());
@@ -125,6 +135,27 @@ public class PaymentServiceImpl implements PaymentService {
         return mapToResponse(payment);
     }
 
+    private void validatePaymentRequest(PaymentRequest request) {
+        if (request.getSourceAccountId().equals(request.getDestinationAccountId())) {
+            throw new IllegalArgumentException("Source and destination accounts cannot be the same");
+        }
+
+        ExternalCustomerResponse customer = customerServiceClient.getCustomerById(request.getInitiatedByCustomerId());
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer with ID " + request.getInitiatedByCustomerId() + " not found");
+        }
+
+        ExternalAccountResponse sourceAccount = accountServiceClient.getAccountById(request.getSourceAccountId());
+        if (sourceAccount == null) {
+            throw new ResourceNotFoundException("Source account with ID " + request.getSourceAccountId() + " not found");
+        }
+
+        ExternalAccountResponse destinationAccount = accountServiceClient.getAccountById(request.getDestinationAccountId());
+        if (destinationAccount == null) {
+            throw new ResourceNotFoundException("Destination account with ID " + request.getDestinationAccountId() + " not found");
+        }
+    }
+
     private PaymentResponse mapToResponse(PaymentTransaction payment) {
         return PaymentResponse.builder()
                 .transactionId(payment.getTransactionId())
@@ -143,7 +174,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .updatedAt(payment.getUpdatedAt())
                 .build();
     }
-
 }
 
 
