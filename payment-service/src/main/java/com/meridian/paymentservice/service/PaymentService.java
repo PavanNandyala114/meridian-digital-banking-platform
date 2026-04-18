@@ -3,6 +3,7 @@ package com.meridian.paymentservice.service;
 import com.meridian.paymentservice.payload.PaymentRequest;
 import com.meridian.paymentservice.payload.PaymentResponse;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface PaymentService {
@@ -18,6 +19,9 @@ public interface PaymentService {
         PaymentResponse updatePayment(Long transactionId, PaymentRequest request);
 
         PaymentResponse deletePayment(Long transactionId);
+
+
+
 
 
 }

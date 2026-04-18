@@ -14,6 +14,7 @@ import com.meridian.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +40,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         validatePaymentRequest(request);
 
+        try {
+            accountServiceClient.debitAccount(request.getSourceAccountId(), request.getAmount());
+        } catch (HttpClientErrorException.BadRequest ex) {
+            throw new IllegalArgumentException("Insufficient balance in account with id: " + request.getSourceAccountId());
+        }
+        accountServiceClient.creditAccount(request.getDestinationAccountId(), request.getAmount());
+
         PaymentTransaction payment = PaymentTransaction.builder()
                 .transactionReference(request.getTransactionReference())
                 .sourceAccountId(request.getSourceAccountId())
@@ -47,17 +55,18 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(request.getAmount())
                 .currencyCode(request.getCurrencyCode().toUpperCase())
                 .paymentType(PaymentTransaction.PaymentType.valueOf(request.getPaymentType().toUpperCase()))
-                .paymentStatus(PaymentTransaction.PaymentStatus.valueOf(request.getPaymentStatus().toUpperCase()))
+                .paymentStatus(PaymentTransaction.PaymentStatus.COMPLETED)
                 .transactionType(PaymentTransaction.TransactionType.valueOf(request.getTransactionType().toUpperCase()))
                 .remarks(request.getRemarks())
+                .completedAt(LocalDateTime.now())
                 .build();
 
-        if (payment.getPaymentStatus() == PaymentTransaction.PaymentStatus.COMPLETED) {
-            payment.setCompletedAt(java.time.LocalDateTime.now());
+//        if (payment.getPaymentStatus() == PaymentTransaction.PaymentStatus.COMPLETED) {
+//            payment.setCompletedAt(java.time.LocalDateTime.now());
 
-        }
+//        }
         PaymentTransaction savedPayment = paymentRepository.save(payment);
-        log.info("Payment created with ID: {}", savedPayment.getTransactionId());
+        log.info("Payment completed successfully with id: {}", savedPayment.getTransactionId());
 
         return mapToResponse(savedPayment);
     }
@@ -145,16 +154,35 @@ public class PaymentServiceImpl implements PaymentService {
             throw new ResourceNotFoundException("Customer with ID " + request.getInitiatedByCustomerId() + " not found");
         }
 
-        ExternalAccountResponse sourceAccount = accountServiceClient.getAccountById(request.getSourceAccountId());
+        ExternalAccountResponse sourceAccount;
+        try{
+               sourceAccount = accountServiceClient.getAccountById(request.getSourceAccountId());
+        } catch (HttpClientErrorException.NotFound ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new ResourceNotFoundException("Source account with ID " + request.getSourceAccountId() + " not found");
+            } else {
+                throw ex;
+            }
+        }
         if (sourceAccount == null) {
             throw new ResourceNotFoundException("Source account with ID " + request.getSourceAccountId() + " not found");
         }
 
-        ExternalAccountResponse destinationAccount = accountServiceClient.getAccountById(request.getDestinationAccountId());
+        ExternalAccountResponse destinationAccount;
+        try{
+                destinationAccount= accountServiceClient.getAccountById(request.getDestinationAccountId());
+        } catch (HttpClientErrorException.NotFound ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new ResourceNotFoundException("Destination account with ID " + request.getDestinationAccountId() + " not found");
+            } else {
+                throw ex;
+            }
+        }
         if (destinationAccount == null) {
             throw new ResourceNotFoundException("Destination account with ID " + request.getDestinationAccountId() + " not found");
         }
     }
+
 
     private PaymentResponse mapToResponse(PaymentTransaction payment) {
         return PaymentResponse.builder()

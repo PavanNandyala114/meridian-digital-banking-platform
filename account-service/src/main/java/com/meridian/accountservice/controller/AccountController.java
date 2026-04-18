@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -71,6 +72,24 @@ public class AccountController {
                 .success(true)
                 .message("Account updated successfully")
                 .data(accountService.updateAccount(accountId, request))
+                .build());
+    }
+
+    @PutMapping("/{accountId}/debit")
+    public ResponseEntity<ApiResponse<AccountResponse>> debitAccount(@PathVariable Long accountId, @RequestParam BigDecimal amount) {
+        return ResponseEntity.ok(ApiResponse.<AccountResponse>builder()
+                .success(true)
+                .message("Account debited successfully")
+                .data(accountService.debitAccount(accountId, amount))
+                .build());
+    }
+
+    @PutMapping("/{accountId}/credit")
+    public ResponseEntity<ApiResponse<AccountResponse>> creditAccount(@PathVariable Long accountId, @RequestParam BigDecimal amount) {
+        return ResponseEntity.ok(ApiResponse.<AccountResponse>builder()
+                .success(true)
+                .message("Account credited successfully")
+                .data(accountService.creditAccount(accountId, amount))
                 .build());
     }
 

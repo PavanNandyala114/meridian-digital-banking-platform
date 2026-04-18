@@ -3,6 +3,7 @@ package com.meridian.accountservice.service;
 import com.meridian.accountservice.payload.AccountRequest;
 import com.meridian.accountservice.payload.AccountResponse;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface AccountService {
@@ -15,4 +16,8 @@ public interface AccountService {
         List<AccountResponse> getAllAccounts();
         AccountResponse updateAccount(Long accountId, AccountRequest request);
         void deleteAccount(Long accountId);
+
+        AccountResponse debitAccount(Long accountId, BigDecimal amount);
+
+        AccountResponse creditAccount(Long accountId, BigDecimal amount);
 }

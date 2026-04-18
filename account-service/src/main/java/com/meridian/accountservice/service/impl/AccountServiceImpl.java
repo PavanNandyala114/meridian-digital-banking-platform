@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -136,6 +137,43 @@ public class AccountServiceImpl implements AccountService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public AccountResponse debitAccount(Long accountId, BigDecimal amount) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+
+        if (amount.compareTo(BigDecimal.ZERO)<=0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+
+        if (account.getAvailableBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance in account with id: " + accountId);
+        }
+
+        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
+        Account updatedAccount = accountRepository.save(account);
+
+        log.info("Debited amount {} from accountId: {}. New balance: {}", amount, accountId, updatedAccount.getAvailableBalance());
+        return mapToResponse(updatedAccount);
+
+    }
+
+    @Override
+    public AccountResponse creditAccount(Long accountId, BigDecimal amount) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+
+        if (amount.compareTo(BigDecimal.ZERO)<=0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+
+        account.setAvailableBalance(account.getAvailableBalance().add(amount));
+        Account updatedAccount = accountRepository.save(account);
+
+        log.info("Credited amount {} to accountId: {}. New balance: {}", amount, accountId, updatedAccount.getAvailableBalance());
+        return mapToResponse(updatedAccount);
     }
 
 }
